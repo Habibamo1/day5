@@ -1,232 +1,168 @@
-// import 'package:day5/screens/home_screen.dart';
+// import 'package:day5/provider/user_provider.dart';
 // import 'package:flutter/material.dart';
-// import 'package:dio/dio.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:flutter_form_builder/flutter_form_builder.dart';
+// import 'package:provider/provider.dart';
+// import 'home_screen.dart';
 
-// class LoginPage extends StatefulWidget {
+// class LoginPage extends StatelessWidget {
 //   const LoginPage({super.key});
 
 //   @override
-//   State<LoginPage> createState() => _LoginPageState();
-// }
-
-// class _LoginPageState extends State<LoginPage> {
-//   final _formKey = GlobalKey<FormState>();
-//   final TextEditingController _usernameController = TextEditingController();
-//   final TextEditingController _passwordController = TextEditingController();
-
-//   bool _isLoading = false;
-//   final Dio _dio = Dio();
-
-//   Future<void> _login() async {
-//     if (!_formKey.currentState!.validate()) return;
-
-//     setState(() => _isLoading = true);
-
-//     try {
-//       final response = await _dio.post(
-//         "https://dummyjson.com/auth/login",
-//         data: {
-//           "username": _usernameController.text,
-//           "password": _passwordController.text,
-//         },
-//         options: Options(headers: {"Content-Type": "application/json"}),
-//       );
-
-//       if (response.statusCode == 200) {
-//         final data = response.data;
-
-//         final prefs = await SharedPreferences.getInstance();
-//         await prefs.setString("token", data["token"]);
-
-//         Navigator.pushReplacement(
-//           context,
-//           MaterialPageRoute(builder: (context) => const HomePage()),
-//         );
-//       }
-//     } on DioException catch (e) {
-//       String errorMessage = "Login failed";
-//       if (e.response != null) {
-//         errorMessage = e.response?.data["message"] ?? "Invalid";
-//       }
-//       ScaffoldMessenger.of(
-//         context,
-//       ).showSnackBar(SnackBar(content: Text(errorMessage)));
-//     } catch (e) {
-//       ScaffoldMessenger.of(
-//         context,
-//       ).showSnackBar(SnackBar(content: Text("Error: $e")));
-//     } finally {
-//       setState(() => _isLoading = false);
-//     }
-//   }
-
-//   @override
 //   Widget build(BuildContext context) {
+//     final userProvider = context.watch<UserProvider>();
+
+//     final _formKey = GlobalKey<FormBuilderState>();
+
 //     return Scaffold(
-//       body: Column(
-//         children: [
-//           Container(
-//             color: Colors.deepOrange,
-//             width: double.infinity,
-//             height: 300,
-//             child: Column(
-//               children: [
-//                 Icon(Icons.ice_skating_outlined, color: Colors.black),
-//                 Text("Login "),
-//               ],
-//             ),
-//           ),
-//           Padding(
-//             padding: const EdgeInsets.all(16.0),
-//             child: Form(
-//               key: _formKey,
-//               child: Column(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   // Username
-//                   TextFormField(
-//                     controller: _usernameController,
-//                     decoration: const InputDecoration(labelText: "Username"),
-//                     validator: (value) => value == null || value.isEmpty
-//                         ? "Enter username"
-//                         : null,
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Password
-//                   TextFormField(
-//                     controller: _passwordController,
-//                     decoration: const InputDecoration(labelText: "Password"),
-//                     obscureText: true,
-//                     validator: (value) => value == null || value.length < 6
-//                         ? "Password must be at least 6 characters"
-//                         : null,
-//                   ),
-//                   const SizedBox(height: 24),
-
-//                   // Login Button
-//                   _isLoading
-//                       ? const CircularProgressIndicator()
-//                       : ElevatedButton(
-//                           onPressed: _login,
-//                           child: const Text("Login"),
-//                         ),
-//                 ],
+//       appBar: AppBar(title: const Text('Login')),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16.0),
+//         child: FormBuilder(
+//           key: _formKey,
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               FormBuilderTextField(
+//                 name: "username",
+//                 controller: userProvider.usernameController,
+//                 decoration: const InputDecoration(labelText: 'Username'),
+//                 validator: (v) =>
+//                     v == null || v.isEmpty ? 'Enter username' : null,
 //               ),
-//             ),
+//               const SizedBox(height: 12),
+//               FormBuilderTextField(
+//                 name: "pass",
+//                 controller: userProvider.passwordController,
+//                 decoration: const InputDecoration(labelText: 'Password'),
+//                 obscureText: true,
+//                 validator: (v) => v == null || v.length < 6
+//                     ? 'Password at least 6 chars'
+//                     : null,
+//               ),
+//               const SizedBox(height: 20),
+//               userProvider.isLoading
+//                   ? const CircularProgressIndicator()
+//                   : ElevatedButton(
+//                       onPressed: () async {
+//                         _formKey.currentState?.saveAndValidate();
+//                         if (_formKey.currentState!.isValid) {
+//                           final success = await userProvider.login();
+
+//                           if (success) {
+//                             Navigator.pushReplacement(
+//                               context,
+//                               MaterialPageRoute(
+//                                 builder: (c) => const HomePage(),
+//                               ),
+//                             );
+//                           } else {
+//                             ScaffoldMessenger.of(context).showSnackBar(
+//                               const SnackBar(content: Text('Login failed')),
+//                             );
+//                           }
+//                         }
+//                       },
+//                       child: const Text('Login'),
+//                     ),
+//             ],
 //           ),
-//         ],
+//         ),
 //       ),
 //     );
 //   }
 // }
 
-import 'package:day5/screens/api_service.dart';
-import 'package:dio/dio.dart';
+import 'package:day5/main.dart';
+import 'package:day5/screens/signup_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../provider/user_provider.dart';
 import 'home_screen.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormBuilderState>();
-  final ApiService _api = ApiService();
-  final TextEditingController _usernameController = TextEditingController(
-    text: 'kminchelle',
-  ); // example
-  final TextEditingController _passwordController = TextEditingController(
-    text: '0lelplR',
-  ); // example
-  bool _isLoading = false;
-
-  void _login(String username, String password) async {
-    // if (!_formKey.currentState!.validate()) return;
-    // setState(() => _isLoading = true);
-
-    try {
-      Response data = await _api.login("/auth/login", {
-        "username": username,
-        "password": password,
-      }, {});
-      // final token = data['accessToken'] as String?;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (c) => const HomePage()),
-      );
-      // if (token != null) {
-      //   final prefs = await SharedPreferences.getInstance();
-      //   await prefs.setString('token', token);
-      //   print()
-      //   Navigator.pushReplacement(
-      //     context,
-      //     MaterialPageRoute(builder: (c) => const HomePage()),
-      //   );
-      // } else {
-      //   ScaffoldMessenger.of(
-      //     context,
-      //   ).showSnackBar(const SnackBar(content: Text('Login failed')));
-      // }
-    } catch (e) {
-      print(e);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FormBuilder(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FormBuilderTextField(
-                name: "username",
-                controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Enter username' : null,
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: "pass",
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                // obscureText: true,
-                validator: (v) => v == null || v.length < 6
-                    ? 'Password at least 6 chars'
-                    : null,
-              ),
-              const SizedBox(height: 20),
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.isValid) {
-                          _login(
-                            _formKey.currentState?.value["username"] ?? "",
-                            _formKey.currentState?.value["pass"] ?? "",
-                          );
-                        }
-                      },
-                      child: const Text('Login'),
-                    ),
-            ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: userProvider.formkey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Login',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 40),
+
+                // username
+                TextFormField(
+                  controller: userProvider.usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Enter username' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // password
+                TextFormField(
+                  controller: userProvider.passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  validator: (val) =>
+                      val == null || val.length < 6 ? 'Invalid password' : null,
+                ),
+                const SizedBox(height: 24),
+
+                userProvider.isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: () async {
+                          if (userProvider.formkey.currentState!.validate()) {
+                            final success = await userProvider.login();
+                            if (success && context.mounted) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomeScreen(),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Login failed, try again"),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Login'),
+                      ),
+                const SizedBox(height: 16),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignupPage()),
+                    );
+                  },
+                  child: const Text("Don't have an account? Register"),
+                ),
+              ],
+            ),
           ),
         ),
       ),

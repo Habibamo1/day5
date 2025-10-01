@@ -1,6 +1,9 @@
+import 'package:day5/provider/product_provider.dart';
+import 'package:day5/provider/user_provider.dart';
 import 'package:day5/screens/home_screen.dart';
 import 'package:day5/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,13 +45,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "hi",
-      initialRoute: "/",
-      routes: {
-        "/": (context) => SplashScreen(),
-        "/home": (context) => HomePage(),
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+      ],
+      child: MaterialApp(
+        title: "hi",
+        initialRoute: "/",
+        routes: {
+          "/": (context) => SplashScreen(),
+          "/home": (context) => HomeScreen(),
+        },
+      ),
     );
   }
 }
